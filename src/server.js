@@ -1,45 +1,62 @@
+/* eslint-disable */
+const { server } = require('./server.js');
 const bodyParser = require('body-parser');
-const express = require('express');
+const port = 3000; // The port we are going to listen to.
+const postsArray = [
+    {
+        title: "The post title",
+        contents: "The post contents",
+    },
+];
 
-const STATUS_USER_ERROR = 422;
-
-// This array of posts persists in memory across requests. Feel free
-// to change this to a let binding if you need to reassign it.
-let posts = [];
-
-let postId = 0;
-
-const server = express();
-// to enable parsing of json bodies for post requests
 server.use(bodyParser.json());
-const handleUserError = (msg, res) => {
-    res.status(STATUS_USER_ERROR).json(msg);
-    return;
-};
 
-// TODO: your code to handle requests
+server.get('/', (req, res) => {
+    res.send(postsArray);
+});
 
 server.get('/posts', (req, res) => {
-  const { term } = req.query;
-  if (term) {
-    const searchedPosts = posts.filter((post) => {
-      return post.title.includes(term) || post.contents.includes(term);
+    let term = req.query.term;
+    let returnArr = []; // Array of items to return if something matches
+    postsArray.forEach((post, index) => {
+        let objValues = Object.values(post);
+        let postMatch = false; // Flag for contains string inside matching
+
+        objValues.forEach((strItem, index) => { // Function for matching partial string inside
+            if (strItem.includes(term)) postMatch = true;
+        });
+        if (postMatch) {
+            returnArr.push(post)
+        };
+        return returnArr;
     });
-    res.json(searchedPosts);
-  } else {
-    res.json(posts);
-  }
+    if (term !== undefined) {
+        res.status(200).json(returnArr);
+    } else {
+        res.status(200).json(postsArray);
+    }
 });
 
 server.post('/posts', (req, res) => {
-  const { title, contents } = req.body;
-  if (!title || !contents) {
-    return handleUserError({ error: 'Must Provide Post Title and Content' }, res);
-  }
-  const post = { id: postId, title, contents };
-  posts.push(post);
-  postId++;
-  res.json(post);
+    let post = (req.body); // Parse body of post and set it to a variable
+    postsArray.push(post);
+    res.status(201).json(postsArray);
 });
 
-module.exports = { posts, server };
+server.put('/posts', (req, res) => {
+    let post = (req.body); // Parse body of post and set it to a variable
+    postsArray[Number(post.id)] = post;
+    res.status(201).json(postsArray);
+})
+
+server.delete('/posts', (req, res) => {
+    let post = (req.body); // Parse body of post and set it to a variable
+    if (!post.id || postsArray.length < Number(post.id)) {
+        res.status(404).json("Please Provide an ID");
+    } else {
+        postsArray.splice(Number(post.id), 1);
+        res.status(201).json(postsArray);
+    }
+})
+
+server.listen(port, () => console.log(`Server is listening on localhost:${port}`));
